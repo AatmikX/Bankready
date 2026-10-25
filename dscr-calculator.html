@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230E6B5C'/%3E%3Cpath d='M9 22V10h7a4 4 0 0 1 0 8h-7m7 0 5 4' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,'Segoe UI',sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>DSCR and Loan Eligibility Calculator</title>
+<meta name="description" content="Free DSCR calculator and loan eligibility calculator for Indian business loans and home loans. Check your debt service coverage ratio, EMI and maximum eligible loan the way banks do.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: a banker's appraisal sheet — inputs on the left, the verdict on the right, the method explained below. */
+:root{
+  --bg:#F5F7F5; --surface:#FFFFFF; --ink:#13211C; --muted:#5A6B64; --line:#D9E1DC;
+  --accent:#0E6B5C; --accent-soft:#E2F0EC;
+  --good:#1D7A46; --good-bg:#E3F3E9; --warn:#9A6200; --warn-bg:#FBF0D9; --bad:#B42318; --bad-bg:#FCE7E4;
+  --display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --body:"Source Sans 3","Segoe UI",Arial,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F1714; --surface:#16211D; --ink:#E4ECE8; --muted:#97A8A1; --line:#2A3833;
+  --accent:#4FC2A8; --accent-soft:#173A32;
+  --good:#5BD08A; --good-bg:#16301F; --warn:#F0B54A; --warn-bg:#3A2C10; --bad:#F2877C; --bad-bg:#3D1A17; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1714; --surface:#16211D; --ink:#E4ECE8; --muted:#97A8A1; --line:#2A3833;
+  --accent:#4FC2A8; --accent-soft:#173A32;
+  --good:#5BD08A; --good-bg:#16301F; --warn:#F0B54A; --warn-bg:#3A2C10; --bad:#F2877C; --bad-bg:#3D1A17; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55}
+.wrap{max-width:1080px;margin:0 auto;padding-block:32px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:32px}
+header{display:grid;gap:10px;max-width:68ch}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(28px,5vw,44px);line-height:1.08;margin:0;text-wrap:balance;letter-spacing:-.01em}
+h2{font-family:var(--display);font-weight:700;font-size:22px;margin:0;text-wrap:balance}
+h3{font-family:var(--display);font-weight:600;font-size:17px;margin:0}
+p{margin:0}
+.lede{color:var(--muted);font-size:17px}
+
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tab{appearance:none;border:0;background:none;color:var(--muted);font:600 15px var(--body);padding:10px 14px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tab:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.calc{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:760px){.calc{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:22px;display:grid;gap:18px;min-width:0}
+.group{display:grid;gap:12px}
+.group-title{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.field{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:12px;align-items:center}
+@media (max-width:420px){.field{grid-template-columns:minmax(0,1fr) 120px}}
+.field label{font-size:15px}
+.field small{display:block;color:var(--muted);font-size:13px;line-height:1.35}
+.inp{display:flex;align-items:center;border:1px solid var(--line);border-radius:6px;background:var(--bg);overflow:hidden}
+.inp input,.inp select{width:100%;min-width:0;border:0;background:transparent;color:var(--ink);font:500 15px var(--mono);padding:9px 10px;text-align:right}
+.inp select{text-align:left;cursor:pointer}
+.unit{font:500 12px var(--mono);color:var(--muted);padding-right:10px;white-space:nowrap}
+.sample{font-size:13px;color:var(--muted);background:var(--accent-soft);border-radius:6px;padding:8px 10px}
+
+.result{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px)}
+@media (max-width:760px){.result{position:static}}
+.big{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.big-num{font:600 clamp(44px,8vw,64px)/1 var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.chip{font:600 13px var(--body);padding:4px 10px;border-radius:999px}
+.chip.good{color:var(--good);background:var(--good-bg)} .chip.warn{color:var(--warn);background:var(--warn-bg)} .chip.bad{color:var(--bad);background:var(--bad-bg)}
+.verdict{color:var(--muted);font-size:15px}
+
+.gauge{display:grid;gap:6px}
+.bar{position:relative;height:12px;border-radius:6px;background:linear-gradient(90deg,var(--bad-bg) 0 40%,var(--warn-bg) 40% 50%,var(--good-bg) 50% 100%);border:1px solid var(--line)}
+.needle{position:absolute;top:-5px;width:4px;height:22px;border-radius:2px;background:var(--ink);transform:translateX(-2px);transition:left .25s ease}
+.target{position:absolute;top:-3px;height:18px;border-left:2px dashed var(--accent)}
+.scale{display:flex;justify-content:space-between;font:500 11px var(--mono);color:var(--muted)}
+
+.kv{display:grid;gap:0;border-top:1px solid var(--line)}
+.kv div{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.kv dt{color:var(--muted)} .kv dd{margin:0;font:600 15px var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+.kv .em dd{color:var(--accent);font-size:17px}
+
+.method{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+@media (max-width:760px){.method{grid-template-columns:minmax(0,1fr)}}
+.method article{display:grid;gap:8px;align-content:start}
+.method p{color:var(--muted);font-size:15px}
+.formula{font:500 13px var(--mono);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px;overflow-x:auto;white-space:nowrap;color:var(--ink)}
+table.norms{width:100%;border-collapse:collapse;font-size:14px}
+table.norms td{padding:6px 0;border-bottom:1px solid var(--line)}
+table.norms td:last-child{text-align:right;font-family:var(--mono)}
+
+.cta{border-top:1px solid var(--line);padding-top:28px;display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:760px){.cta{grid-template-columns:minmax(0,1fr)}}
+.cta ul{margin:0;padding-left:18px;color:var(--muted);display:grid;gap:4px}
+.contact{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:grid;gap:6px}
+.contact .placeholder{font-family:var(--mono);font-size:14px;color:var(--warn)}
+footer{color:var(--muted);font-size:13px;max-width:80ch}
+@media (prefers-reduced-motion:reduce){.needle{transition:none}}
+</style>
+</head>
+<body>
+<style>.sitenav{display:flex;gap:16px;justify-content:flex-end;max-width:1360px;margin:0 auto;padding:10px max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px));font:600 14px var(--body)}.sitenav a{color:var(--accent);text-decoration:none}.sitenav a:hover{text-decoration:underline}</style><nav class="sitenav"><a href="/">BankReady: full loan projections</a></nav>
+
+
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Free tool · Indian bank lending norms</span>
+    <h1>DSCR and loan eligibility calculator</h1>
+    <p class="lede">Check your debt service coverage ratio, EMI and the maximum loan a bank is likely to sanction, using the same method credit officers use in an appraisal note.</p>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-biz" aria-selected="true" aria-controls="pane-biz">Business loan (DSCR)</button>
+    <button class="tab" role="tab" id="tab-home" aria-selected="false" aria-controls="pane-home">Home or personal loan (FOIR)</button>
+  </div>
+
+  <!-- Business -->
+  <section class="calc" id="pane-biz" role="tabpanel" aria-labelledby="tab-biz">
+    <form class="panel" id="f-biz" novalidate>
+      <p class="sample">Filled with example figures for a small manufacturer. Replace them with your own.</p>
+      <div class="group">
+        <span class="group-title">Annual cash flow (₹ lakh)</span>
+        <div class="field"><label for="ebitda">Operating profit (EBITDA)<small>Profit before interest, depreciation and tax</small></label><div class="inp"><input id="ebitda" type="number" inputmode="decimal" step="0.1" value="60"><span class="unit">lakh</span></div></div>
+        <div class="field"><label for="tax">Tax paid per year</label><div class="inp"><input id="tax" type="number" inputmode="decimal" step="0.1" value="8"><span class="unit">lakh</span></div></div>
+        <div class="field"><label for="wcint">Interest on cash credit / overdraft<small>Working capital interest, not term loans</small></label><div class="inp"><input id="wcint" type="number" inputmode="decimal" step="0.1" value="6"><span class="unit">lakh</span></div></div>
+        <div class="field"><label for="exist">Existing term loan EMIs per year<small>Principal plus interest, all running loans</small></label><div class="inp"><input id="exist" type="number" inputmode="decimal" step="0.1" value="10"><span class="unit">lakh</span></div></div>
+      </div>
+      <div class="group">
+        <span class="group-title">Proposed loan</span>
+        <div class="field"><label for="amt">Loan amount</label><div class="inp"><input id="amt" type="number" inputmode="decimal" step="1" value="100"><span class="unit">lakh</span></div></div>
+        <div class="field"><label for="rate">Interest rate</label><div class="inp"><input id="rate" type="number" inputmode="decimal" step="0.05" value="10.5"><span class="unit">% p.a.</span></div></div>
+        <div class="field"><label for="tenor">Tenor</label><div class="inp"><input id="tenor" type="number" inputmode="numeric" step="1" value="7"><span class="unit">years</span></div></div>
+        <div class="field"><label for="target">Bank's minimum DSCR</label><div class="inp"><select id="target"><option value="1.25">1.25x</option><option value="1.5" selected>1.50x</option><option value="1.75">1.75x</option><option value="2">2.00x</option></select></div></div>
+      </div>
+    </form>
+
+    <aside class="panel result" aria-live="polite">
+      <span class="group-title">Your DSCR</span>
+      <div class="big"><span class="big-num" id="dscr">–</span><span class="chip" id="chip">–</span></div>
+      <p class="verdict" id="verdict"></p>
+      <div class="gauge" aria-hidden="true">
+        <div class="bar"><span class="target" id="tmark"></span><span class="needle" id="needle"></span></div>
+        <div class="scale"><span>0x</span><span>1.0x</span><span>2.0x</span><span>3.0x+</span></div>
+      </div>
+      <dl class="kv">
+        <div><dt>Monthly EMI on new loan</dt><dd id="emi">–</dd></div>
+        <div><dt>Cash available for debt service</dt><dd id="avail">–</dd></div>
+        <div><dt>Total debt service per year</dt><dd id="ds">–</dd></div>
+        <div><dt>Total interest over tenor</dt><dd id="totint">–</dd></div>
+        <div class="em"><dt id="maxlbl">Maximum loan at 1.50x DSCR</dt><dd id="maxloan">–</dd></div>
+      </dl>
+    </aside>
+  </section>
+
+  <!-- Home / personal -->
+  <section class="calc" id="pane-home" role="tabpanel" aria-labelledby="tab-home" hidden>
+    <form class="panel" id="f-home" novalidate>
+      <p class="sample">Filled with example figures for a salaried borrower. Replace them with your own.</p>
+      <div class="group">
+        <span class="group-title">Monthly income and obligations (₹)</span>
+        <div class="field"><label for="inc">Net monthly income<small>Take-home salary, or average monthly business income</small></label><div class="inp"><input id="inc" type="number" inputmode="numeric" step="1000" value="120000"><span class="unit">₹/mo</span></div></div>
+        <div class="field"><label for="hexist">Existing EMIs</label><div class="inp"><input id="hexist" type="number" inputmode="numeric" step="500" value="15000"><span class="unit">₹/mo</span></div></div>
+        <div class="field"><label for="foir">Bank's FOIR limit<small>Share of income allowed for all EMIs</small></label><div class="inp"><select id="foir"><option value="0.4">40%</option><option value="0.5" selected>50%</option><option value="0.55">55%</option><option value="0.6">60%</option></select></div></div>
+      </div>
+      <div class="group">
+        <span class="group-title">Loan terms</span>
+        <div class="field"><label for="hrate">Interest rate</label><div class="inp"><input id="hrate" type="number" inputmode="decimal" step="0.05" value="8.5"><span class="unit">% p.a.</span></div></div>
+        <div class="field"><label for="htenor">Tenor</label><div class="inp"><input id="htenor" type="number" inputmode="numeric" step="1" value="20"><span class="unit">years</span></div></div>
+        <div class="field"><label for="hamt">Loan you want<small>Optional, to check its EMI</small></label><div class="inp"><input id="hamt" type="number" inputmode="numeric" step="100000" value="4500000"><span class="unit">₹</span></div></div>
+      </div>
+    </form>
+
+    <aside class="panel result" aria-live="polite">
+      <span class="group-title">Maximum eligible loan</span>
+      <div class="big"><span class="big-num" id="hmax">–</span></div>
+      <p class="verdict" id="hverdict"></p>
+      <dl class="kv">
+        <div><dt>EMI capacity at your FOIR</dt><dd id="hcap">–</dd></div>
+        <div><dt>EMI on the loan you want</dt><dd id="hemi">–</dd></div>
+        <div><dt>FOIR with that loan</dt><dd id="hfoir">–</dd></div>
+        <div class="em"><dt>Status</dt><dd id="hstatus">–</dd></div>
+      </dl>
+    </aside>
+  </section>
+
+  <section class="method" aria-label="How banks assess a loan">
+    <article>
+      <h2>What DSCR means</h2>
+      <p>The debt service coverage ratio tells a bank how many times your yearly cash flow covers your yearly loan repayments. A DSCR of 1.5x means you earn ₹1.50 for every ₹1 you owe that year.</p>
+    </article>
+    <article>
+      <h3>How it is calculated</h3>
+      <div class="formula">DSCR = (PAT + Depreciation + Term loan interest)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;÷ (Term loan interest + Principal)</div>
+      <p>This calculator uses the equivalent shortcut: EBITDA less tax and working capital interest, divided by all term loan EMIs.</p>
+    </article>
+    <article>
+      <h3>Typical bank thresholds</h3>
+      <table class="norms">
+        <tr><td>Average DSCR, most term loans</td><td>1.50x+</td></tr>
+        <tr><td>Minimum in any single year</td><td>1.20–1.25x</td></tr>
+        <tr><td>FOIR, salaried home loans</td><td>50–60%</td></tr>
+      </table>
+      <p>Norms vary by bank, sector and loan size. Treat these as a guide.</p>
+    </article>
+  </section>
+
+  <section class="cta">
+    <div style="display:grid;gap:10px;min-width:0">
+      <h2>Need a bank-ready project report?</h2>
+      <p class="lede">Banks ask for more than a ratio. A full submission includes five to seven years of projections, a balance sheet that ties out, DSCR by year, and working capital assessment under MPBF.</p>
+      <ul>
+        <li>Project reports and CMA data for term loans and cash credit</li>
+        <li>Integrated P&amp;L, balance sheet and cash flow projections</li>
+        <li>Delivered in Excel, with every assumption on one sheet</li>
+      </ul>
+    </div>
+    <div class="contact">
+      <h3>Get in touch</h3>
+      <span class="placeholder">[Add your email]</span>
+      <span class="placeholder">[Add your WhatsApp number]</span>
+    </div>
+  </section>
+
+  <footer>Results are indicative and based on the figures you enter. Actual eligibility depends on each bank's credit policy, your credit score, collateral and documentation. This tool does not provide investment advice.</footer>
+</div>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const num=id=>{const v=parseFloat($(id).value);return isFinite(v)?v:0};
+  const lakh=v=>"₹"+v.toLocaleString("en-IN",{maximumFractionDigits:2,minimumFractionDigits:2})+" L";
+  const rupee=v=>"₹"+Math.round(v).toLocaleString("en-IN");
+  const rupeeBig=v=>v>=1e7?"₹"+(v/1e7).toLocaleString("en-IN",{maximumFractionDigits:2})+" Cr":"₹"+(v/1e5).toLocaleString("en-IN",{maximumFractionDigits:2})+" L";
+  function emi(P,annualRate,years){const n=Math.round(years*12),r=annualRate/1200;if(n<=0)return 0;if(r===0)return P/n;const f=Math.pow(1+r,n);return P*r*f/(f-1)}
+  function pv(E,annualRate,years){const n=Math.round(years*12),r=annualRate/1200;if(n<=0||E<=0)return 0;if(r===0)return E*n;return E*(1-Math.pow(1+r,-n))/r}
+
+  function calcBiz(){
+    const avail=num("ebitda")-num("tax")-num("wcint");
+    const amt=num("amt"),rate=num("rate"),ten=num("tenor"),tgt=parseFloat($("target").value);
+    const m=emi(amt,rate,ten),newAnnual=m*12,ds=num("exist")+newAnnual;
+    const dscr=ds>0?avail/ds:0;
+    $("emi").textContent=lakh(m);
+    $("avail").textContent=lakh(avail);
+    $("ds").textContent=lakh(ds);
+    $("totint").textContent=lakh(Math.max(0,newAnnual*ten-amt));
+    const maxAnnual=avail/tgt-num("exist");
+    $("maxlbl").textContent="Maximum loan at "+tgt.toFixed(2)+"x DSCR";
+    $("maxloan").textContent=maxAnnual>0?lakh(pv(maxAnnual/12,rate,ten)):"Not eligible";
+    $("dscr").textContent=ds>0?dscr.toFixed(2)+"x":"–";
+    const chip=$("chip");
+    let cls,label,text;
+    if(ds<=0){cls="warn";label="Enter a loan";text="Add a loan amount, rate and tenor to see your DSCR."}
+    else if(dscr>=tgt){cls="good";label="Meets norm";text="Your cash flow covers repayments "+dscr.toFixed(2)+" times, above the "+tgt.toFixed(2)+"x the bank is looking for."}
+    else if(dscr>=1.2){cls="warn";label="Borderline";text="Above 1.20x but below the "+tgt.toFixed(2)+"x target. A longer tenor, a smaller loan or extra collateral may be needed."}
+    else{cls="bad";label="Below norm";text="Cash flow does not cover repayments comfortably. Reduce the loan amount or extend the tenor."}
+    chip.className="chip "+cls;chip.textContent=label;$("verdict").textContent=text;
+    const pos=v=>Math.max(0,Math.min(100,v/3*100))+"%";
+    $("needle").style.left=pos(dscr);$("tmark").style.left=pos(tgt);
+  }
+
+  function calcHome(){
+    const inc=num("inc"),ex=num("hexist"),f=parseFloat($("foir").value),rate=num("hrate"),ten=num("htenor"),want=num("hamt");
+    const cap=Math.max(0,inc*f-ex);
+    const max=pv(cap,rate,ten);
+    $("hmax").textContent=max>0?rupeeBig(max):"₹0";
+    $("hcap").textContent=rupee(cap)+"/mo";
+    const e=emi(want,rate,ten);
+    $("hemi").textContent=want>0?rupee(e)+"/mo":"–";
+    const fo=inc>0?(ex+e)/inc:0;
+    $("hfoir").textContent=want>0&&inc>0?(fo*100).toFixed(1)+"%":"–";
+    $("hstatus").textContent=want<=0?"–":(fo<=f?"Within limit":"Above limit");
+    $("hverdict").textContent=cap>0
+      ?"Based on "+Math.round(f*100)+"% of "+rupee(inc)+" monthly income, less existing EMIs of "+rupee(ex)+"."
+      :"Existing EMIs already use your full FOIR limit, so a new loan is unlikely to be approved.";
+  }
+
+  $("f-biz").addEventListener("input",calcBiz);
+  $("f-home").addEventListener("input",calcHome);
+  document.querySelectorAll("form").forEach(f=>f.addEventListener("submit",e=>e.preventDefault()));
+
+  const tabs=[["tab-biz","pane-biz"],["tab-home","pane-home"]];
+  function show(id){tabs.forEach(([t,p])=>{const on=t===id;$(t).setAttribute("aria-selected",on);$(p).hidden=!on});
+    try{localStorage.setItem("dscr-tab",id)}catch(e){}}
+  tabs.forEach(([t])=>$(t).addEventListener("click",()=>show(t)));
+  try{const s=localStorage.getItem("dscr-tab");if(s==="tab-home")show(s)}catch(e){}
+
+  calcBiz();calcHome();
+})();
+</script>
+
+</body>
+</html>

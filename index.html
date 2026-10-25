@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%230E6B5C'/%3E%3Cpath d='M9 22V10h7a4 4 0 0 1 0 8h-7m7 0 5 4' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,'Segoe UI',sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>BankReady</title>
+<meta name="description" content="Turn a small business's financials into bank-ready loan projections: 7-year P&L, balance sheet, cash flow, DSCR and MPBF assessment in minutes.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: an appraisal workbench — inputs in a narrow left rail, the generated loan report on the right, read like a bank's appraisal note. */
+:root{
+  --bg:#F4F6F5; --surface:#FFFFFF; --ink:#13211C; --muted:#5A6B64; --line:#D9E1DC; --zebra:#F7F9F8;
+  --accent:#0E6B5C; --accent-ink:#FFFFFF; --accent-soft:#E2F0EC;
+  --good:#1D7A46; --good-bg:#E3F3E9; --warn:#9A6200; --warn-bg:#FBF0D9; --bad:#B42318; --bad-bg:#FCE7E4;
+  --display:"Archivo","Helvetica Neue",Arial,sans-serif; --body:"Source Sans 3","Segoe UI",Arial,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F1714; --surface:#16211D; --ink:#E4ECE8; --muted:#97A8A1; --line:#2A3833; --zebra:#1A2622;
+  --accent:#4FC2A8; --accent-ink:#0F1714; --accent-soft:#173A32;
+  --good:#5BD08A; --good-bg:#16301F; --warn:#F0B54A; --warn-bg:#3A2C10; --bad:#F2877C; --bad-bg:#3D1A17; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F1714; --surface:#16211D; --ink:#E4ECE8; --muted:#97A8A1; --line:#2A3833; --zebra:#1A2622;
+  --accent:#4FC2A8; --accent-ink:#0F1714; --accent-soft:#173A32;
+  --good:#5BD08A; --good-bg:#16301F; --warn:#F0B54A; --warn-bg:#3A2C10; --bad:#F2877C; --bad-bg:#3D1A17; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:1360px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:20px}
+.top{display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap}
+.logo{font:800 22px var(--display);letter-spacing:-.01em}
+.logo span{color:var(--accent)}
+.tag{color:var(--muted);font-size:15px;max-width:60ch}
+.layout{display:grid;grid-template-columns:360px minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:980px){.layout{grid-template-columns:minmax(0,1fr)}}
+
+/* inputs */
+.rail{display:grid;gap:10px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);max-height:calc(100vh - 24px);overflow:auto;padding-right:2px}
+@media (max-width:980px){.rail{position:static;max-height:none;overflow:visible}}
+.note{font-size:13px;color:var(--muted);background:var(--accent-soft);border-radius:8px;padding:8px 10px}
+details{background:var(--surface);border:1px solid var(--line);border-radius:10px}
+summary{cursor:pointer;list-style:none;padding:12px 14px;font:700 14px var(--body);display:flex;justify-content:space-between;align-items:center}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font:600 16px var(--mono);color:var(--muted)}
+details[open] summary::after{content:"–"}
+summary:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:10px}
+.fields{display:grid;gap:8px;padding:0 14px 14px}
+.f{display:grid;grid-template-columns:minmax(0,1fr) 112px;gap:10px;align-items:center}
+.f.wide{grid-template-columns:minmax(0,1fr)}
+.f label{font-size:14px;line-height:1.25}
+.f label small{display:block;color:var(--muted);font-size:12px}
+.f input{width:100%;min-width:0;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:6px;font:500 14px var(--mono);padding:7px 8px;text-align:right}
+.f.wide input{text-align:left;font-family:var(--body);font-size:15px}
+.f input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.growth{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.growth input{text-align:center;padding:7px 2px;font-size:13px}
+.growth-lbl{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;font:500 11px var(--mono);color:var(--muted);text-align:center}
+
+/* report */
+.report{display:grid;gap:18px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;display:grid;gap:14px;min-width:0}
+.card h2{font:700 18px var(--display);margin:0}
+.card h2 small{font:500 13px var(--body);color:var(--muted);margin-left:6px}
+.headline{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:700px){.headline{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{border-left:3px solid var(--line);padding:2px 0 2px 12px;display:grid;gap:2px}
+.stat span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.stat b{font:600 22px var(--mono);font-variant-numeric:tabular-nums}
+.stat.key{border-left-color:var(--accent)}
+.verdict{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.chip{font:700 13px var(--body);padding:4px 10px;border-radius:999px;white-space:nowrap}
+.chip.good{color:var(--good);background:var(--good-bg)} .chip.warn{color:var(--warn);background:var(--warn-bg)} .chip.bad{color:var(--bad);background:var(--bad-bg)}
+.verdict p{margin:0;flex:1;min-width:220px}
+.alerts{display:grid;gap:6px}
+.alert{font-size:14px;border-radius:8px;padding:8px 12px}
+.alert.warn{background:var(--warn-bg);color:var(--warn)} .alert.bad{background:var(--bad-bg);color:var(--bad)}
+.narr{margin:0;font-size:16px;line-height:1.65;max-width:90ch}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btn{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 14px var(--body);padding:8px 14px;border-radius:8px;cursor:pointer}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+.tabs button{appearance:none;background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-1px;padding:8px 12px;font:600 14px var(--body);color:var(--muted);cursor:pointer}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tabs button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:760px;font-size:14px}
+th,td{padding:7px 10px;text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal;min-width:220px}
+thead th{font:600 12px var(--mono);color:var(--muted);border-bottom:1px solid var(--line)}
+thead th small{display:block;font-weight:500;font-size:10px}
+tbody td{font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:13px}
+tbody td:first-child{font-family:var(--body);font-size:14px}
+tbody tr:nth-child(even){background:var(--zebra)}
+tr.tot td{font-weight:700;border-top:1px solid var(--ink)}
+tr.sec td{background:var(--bg);font-family:var(--body);font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+td.neg{color:var(--bad)}
+td.ok{color:var(--good)}
+.foot{font-size:13px;color:var(--muted)}
+.imp{background:var(--surface);border:2px dashed var(--line);border-radius:10px;padding:14px;display:grid;gap:10px}
+.imp.drag{border-color:var(--accent);background:var(--accent-soft)}
+.imp h3{margin:0;font:700 15px var(--display)}
+.imp p{margin:0;font-size:13px;color:var(--muted)}
+.imp-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.filebtn{position:relative;overflow:hidden}
+.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.imp textarea{width:100%;min-height:72px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:6px;font:400 13px var(--mono);padding:8px;resize:vertical}
+.imp select{border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:6px;font:500 13px var(--body);padding:6px 8px}
+.imp-status{font-size:13px;border-radius:8px;padding:8px 10px;display:grid;gap:4px}
+.imp-status.ok{background:var(--good-bg);color:var(--good)} .imp-status.warn{background:var(--warn-bg);color:var(--warn)} .imp-status.bad{background:var(--bad-bg);color:var(--bad)}
+.f input.from-file{border-color:var(--accent);background:var(--accent-soft)}
+</style>
+</head>
+<body>
+<style>.sitenav{display:flex;gap:16px;justify-content:flex-end;max-width:1360px;margin:0 auto;padding:10px max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px));font:600 14px var(--body)}.sitenav a{color:var(--accent);text-decoration:none}.sitenav a:hover{text-decoration:underline}</style><nav class="sitenav"><a href="/dscr-calculator.html">Free DSCR calculator</a></nav>
+
+
+<div class="wrap">
+  <div class="top">
+    <div>
+      <div class="logo">Bank<span>Ready</span></div>
+      <div class="tag">Turn a small business's financials into bank-ready loan projections, with DSCR and working capital assessment, in minutes.</div>
+    </div>
+  </div>
+
+  <div class="layout">
+    <form class="rail" id="form" novalidate>
+      <div class="imp" id="drop">
+        <h3>Import last year's financials</h3>
+        <p>Upload the audited P&amp;L and balance sheet as Excel, CSV or PDF, or paste rows copied from Tally or Excel. We read the line items and fill the boxes below for you.</p>
+        <div class="imp-row">
+          <label class="btn primary filebtn" for="file">Upload file<input type="file" id="file" accept=".xlsx,.xls,.csv,.pdf,.txt"></label>
+          <label for="unit" style="font-size:13px">Figures in</label>
+          <select id="unit"><option value="auto">Detect automatically</option><option value="rupees">Rupees</option><option value="thousand">Thousands</option><option value="lakh">Lakh</option><option value="million">Millions</option><option value="crore">Crore</option></select>
+        </div>
+        <textarea id="paste" placeholder="Or paste here, one line item per row, e.g.&#10;Revenue from operations    1,20,00,000&#10;Trade receivables    24,70,000"></textarea>
+        <div class="imp-row"><button class="btn" type="button" id="pastebtn">Read pasted data</button></div>
+        <div class="imp-status" id="impstatus" hidden></div>
+      </div>
+      <p class="note">Filled with an example packaging manufacturer. Replace the figures with your client's numbers, or import them above. All amounts in ₹ lakh.</p>
+      <div id="sections"></div>
+    </form>
+
+    <div class="report" aria-live="polite">
+      <section class="card">
+        <h2 id="r-title">Loan appraisal summary</h2>
+        <div class="headline" id="headline"></div>
+        <div class="verdict" id="verdict"></div>
+        <div class="alerts" id="alerts"></div>
+      </section>
+
+      <section class="card">
+        <h2>Report summary <small>auto-written from the numbers</small></h2>
+        <p class="narr" id="narr"></p>
+        <div class="btns"><button class="btn primary" type="button" id="copy">Copy summary</button></div>
+      </section>
+
+      <section class="card">
+        <div class="tabs" role="tablist" id="tabs"></div>
+        <div class="tw" id="table"></div>
+        <p class="foot">Year 0 is the last audited year as entered. Projections assume the term loan is drawn at the start of Year 1, equal annual principal repayments after any moratorium, interest on average balances, and a cash credit limit capped at MPBF (Method II). Cash and bank is the balancing figure.</p>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+const Y=7;
+const S=[
+ {t:"Business",open:true,f:[["name","Business name","Sample Packaging Industries Pvt Ltd","text"],["industry","Industry","corrugated packaging manufacturing","text"],["purpose","Loan purpose","a new corrugation and printing line","text"],["base","Last audited year (FY ending)",2025]]},
+ {t:"Last year's P&L",f:[["sales","Revenue",1200],["rm","Raw material consumed",768],["om","Other manufacturing expenses",96],["emp","Employee costs",84],["adm","Admin and selling expenses",60],["dep0","Depreciation",40],["int0","Interest",18],["tax0","Tax",34]]},
+ {t:"Last year's balance sheet",f:[["sc","Share capital",100],["res","Reserves and surplus",350],["ex0","Existing term loans",0],["cc0","Cash credit",180],["cred0","Trade creditors",95],["ocl0","Other current liabilities",30],["nfa0","Net fixed assets",300],["inv0","Inventory",142],["rec0","Trade receivables",247],["oca0","Other current assets",40],["cash0","Cash and bank",26]]},
+ {t:"Growth and costs",f:[["growth","Revenue growth, % per year",[10,12,25,15,10,8,8]],["rmPct","Raw material, % of sales",65,"last"],["omPct","Other manufacturing, % of sales",8,"last"],["empPct","Employee costs, % of sales",7,"last"],["admPct","Admin and selling, % of sales",5,"last"],["depRate","Depreciation rate (WDV), %",15],["taxRate","Tax rate, %",25.17]]},
+ {t:"Working capital",f:[["recDays","Receivable days",75,"last"],["invDays","Inventory days (on cost of production)",60,"last"],["credDays","Creditor days (on raw material)",45,"last"],["ocaPct","Other current assets, % of sales",3.3],["oclPct","Other current liabilities, % of sales",2.5],["ccReq","Cash credit limit requested",400],["ccRate","Cash credit interest, %",9.5],["margin","MPBF margin on current assets, %",25]]},
+ {t:"Project and term loan",open:true,f:[["proj","Total project cost",550],["tl","Term loan",400],["tlRate","Term loan interest, %",10],["mor","Moratorium, years",1],["tenor","Repayment period, years",5],["maint","Maintenance capex per year",25],["exYears","Existing term loans: years left to repay",3]]}
+];
+const box=document.getElementById("sections");
+const hints={};
+S.forEach(sec=>{
+  const d=document.createElement("details");if(sec.open)d.open=true;
+  const s=document.createElement("summary");s.textContent=sec.t+(["Last year's P&L","Last year's balance sheet"].includes(sec.t)?" (₹ lakh)":"");d.appendChild(s);
+  const fs=document.createElement("div");fs.className="fields";
+  sec.f.forEach(([id,label,val,kind])=>{
+    const row=document.createElement("div");
+    if(id==="growth"){
+      row.className="f wide";
+      const l=document.createElement("label");l.textContent=label;row.appendChild(l);
+      const lb=document.createElement("div");lb.className="growth-lbl";for(let i=1;i<=Y;i++){const x=document.createElement("span");x.textContent="Y"+i;lb.appendChild(x)}
+      const g=document.createElement("div");g.className="growth";
+      val.forEach((v,i)=>{const x=document.createElement("input");x.type="number";x.step="0.5";x.id="g"+(i+1);x.value=v;x.setAttribute("aria-label","Growth year "+(i+1));g.appendChild(x)});
+      row.append(lb,g);
+    }else{
+      row.className="f"+(kind==="text"?" wide":"");
+      const l=document.createElement("label");l.htmlFor=id;l.textContent=label;
+      if(kind==="last"){const sm=document.createElement("small");sm.id="h-"+id;l.appendChild(sm);hints[id]=sm}
+      const x=document.createElement("input");x.id=id;x.value=val;
+      if(kind==="text"){x.type="text"}else{x.type="number";x.step="any";x.inputMode="decimal"}
+      row.append(l,x);
+    }
+    fs.appendChild(row);
+  });
+  d.appendChild(fs);box.appendChild(d);
+});
+
+const n=id=>{const v=parseFloat(document.getElementById(id).value);return isFinite(v)?v:0};
+const t=id=>document.getElementById(id).value.trim();
+const L=v=>v==null||!isFinite(v)?"–":(Math.abs(v)<0.05?"–":(v<0?"(":"")+Math.abs(v).toLocaleString("en-IN",{minimumFractionDigits:1,maximumFractionDigits:1})+(v<0?")":""));
+const X=v=>v==null||!isFinite(v)?"–":v.toFixed(2)+"x";
+const P=v=>v==null||!isFinite(v)?"–":(v*100).toFixed(1)+"%";
+const lk=v=>"₹"+(Math.round(v*10)/10).toLocaleString("en-IN")+" lakh";
+
+let R=null,tab="pl";
+function calc(){
+  const a={};["sales","rm","om","emp","adm","dep0","int0","tax0","sc","res","cc0","cred0","ocl0","nfa0","inv0","rec0","oca0","cash0","rmPct","omPct","empPct","admPct","depRate","taxRate","recDays","invDays","credDays","ocaPct","oclPct","ccReq","ccRate","margin","proj","tl","tlRate","mor","tenor","maint","base","ex0","exYears"].forEach(k=>a[k]=n(k));
+  const g=[0];for(let i=1;i<=Y;i++)g.push(n("g"+i)/100);
+  const z=()=>new Array(Y+1).fill(0);
+  const r={sales:z(),rm:z(),om:z(),cop:z(),emp:z(),adm:z(),ebitda:z(),dep:z(),ebit:z(),tlInt:z(),ccInt:z(),int:z(),pbt:z(),tax:z(),pat:z(),
+    sc:z(),res:z(),nw:z(),tlLT:z(),curMat:z(),cc:z(),cred:z(),ocl:z(),tliab:z(),nfa:z(),inv:z(),rec:z(),oca:z(),cash:z(),tassets:z(),
+    capex:z(),eq:z(),tlOpen:z(),tlDraw:z(),tlRep:z(),tlClose:z(),mpbf:z(),opca:z(),dscr:new Array(Y+1).fill(null),cr:z(),tol:z(),
+    cfo:z(),cfi:z(),cff:z(),dcash:z(),exRep:z(),exClose:z(),exInt:z()};
+  // Year 0 actuals
+  Object.assign(r.sales,{0:a.sales});r.rm[0]=a.rm;r.om[0]=a.om;r.emp[0]=a.emp;r.adm[0]=a.adm;r.dep[0]=a.dep0;r.int[0]=a.int0;r.ccInt[0]=a.int0;r.tax[0]=a.tax0;
+  r.sc[0]=a.sc;r.res[0]=a.res;r.cc[0]=a.cc0;r.cred[0]=a.cred0;r.ocl[0]=a.ocl0;r.nfa[0]=a.nfa0;r.inv[0]=a.inv0;r.rec[0]=a.rec0;r.oca[0]=a.oca0;r.cash[0]=a.cash0;r.exClose[0]=a.ex0;
+  const tenor=Math.max(1,Math.round(a.tenor)),mor=Math.max(0,Math.round(a.mor)),start=1+mor,ann=a.tl/tenor;
+  const repayAt=(i,bal)=>(i>=start&&i<start+tenor)?Math.min(ann,bal):0;
+  const exY=Math.max(1,Math.round(a.exYears)),exAnn=a.ex0/exY,exAt=(i,bal)=>(i>=1&&i<=exY)?Math.min(exAnn,bal):0;
+  for(let i=0;i<=Y;i++){
+    if(i>0){
+      r.sales[i]=r.sales[i-1]*(1+g[i]);r.rm[i]=r.sales[i]*a.rmPct/100;r.om[i]=r.sales[i]*a.omPct/100;
+      r.emp[i]=r.sales[i]*a.empPct/100;r.adm[i]=r.sales[i]*a.admPct/100;
+      r.capex[i]=a.maint+(i===1?a.proj:0);r.eq[i]=i===1?Math.max(0,a.proj-a.tl):0;
+      r.dep[i]=a.depRate/100*(r.nfa[i-1]+r.capex[i]);r.nfa[i]=r.nfa[i-1]+r.capex[i]-r.dep[i];
+      r.tlOpen[i]=r.tlClose[i-1];r.tlDraw[i]=i===1?a.tl:0;r.tlRep[i]=repayAt(i,r.tlOpen[i]+r.tlDraw[i]);
+      r.tlClose[i]=r.tlOpen[i]+r.tlDraw[i]-r.tlRep[i];r.tlInt[i]=a.tlRate/100*(r.tlOpen[i]+r.tlDraw[i]+r.tlClose[i])/2;
+      r.exRep[i]=exAt(i,r.exClose[i-1]);r.exClose[i]=r.exClose[i-1]-r.exRep[i];r.exInt[i]=a.tlRate/100*(r.exClose[i-1]+r.exClose[i])/2;
+    }
+    r.cop[i]=r.rm[i]+r.om[i];r.ebitda[i]=r.sales[i]-r.cop[i]-r.emp[i]-r.adm[i];
+  }
+  for(let i=0;i<=Y;i++){
+    r.curMat[i]=(i===0?0:repayAt(i+1,r.tlClose[i]))+exAt(i+1,r.exClose[i]);
+    if(i>0){
+      r.inv[i]=r.cop[i]*a.invDays/365;r.rec[i]=r.sales[i]*a.recDays/365;r.oca[i]=r.sales[i]*a.ocaPct/100;
+      r.cred[i]=r.rm[i]*a.credDays/365;r.ocl[i]=r.sales[i]*a.oclPct/100;
+    }
+    r.opca[i]=r.inv[i]+r.rec[i]+r.oca[i];
+    r.mpbf[i]=(1-a.margin/100)*r.opca[i]-(r.cred[i]+r.ocl[i]+r.curMat[i]);
+    if(i>0){
+      r.cc[i]=Math.max(0,Math.min(a.ccReq,r.mpbf[i]));
+      r.ccInt[i]=a.ccRate/100*(r.cc[i-1]+r.cc[i])/2;r.int[i]=r.tlInt[i]+r.exInt[i]+r.ccInt[i];
+    }
+    r.ebit[i]=r.ebitda[i]-r.dep[i];r.pbt[i]=r.ebit[i]-r.int[i];
+    if(i>0)r.tax[i]=Math.max(0,r.pbt[i])*a.taxRate/100;
+    r.pat[i]=r.pbt[i]-r.tax[i];
+    if(i>0){r.sc[i]=r.sc[i-1]+r.eq[i];r.res[i]=r.res[i-1]+r.pat[i]}
+    r.nw[i]=r.sc[i]+r.res[i];r.tlLT[i]=r.tlClose[i]+r.exClose[i]-r.curMat[i];
+    r.tliab[i]=r.nw[i]+r.tlLT[i]+r.curMat[i]+r.cc[i]+r.cred[i]+r.ocl[i];
+    if(i>0)r.cash[i]=r.tliab[i]-(r.nfa[i]+r.inv[i]+r.rec[i]+r.oca[i]);
+    r.tassets[i]=r.nfa[i]+r.inv[i]+r.rec[i]+r.oca[i]+r.cash[i];
+    {const rp=r.tlRep[i]+r.exRep[i],ti=r.tlInt[i]+r.exInt[i];if(i>0&&rp>0)r.dscr[i]=(r.pat[i]+r.dep[i]+ti)/(rp+ti);}
+    const cl=r.curMat[i]+r.cc[i]+r.cred[i]+r.ocl[i];
+    r.cr[i]=cl>0?(r.inv[i]+r.rec[i]+r.oca[i]+r.cash[i])/cl:null;
+    r.tol[i]=r.nw[i]>0?(r.tliab[i]-r.nw[i])/r.nw[i]:null;
+    if(i>0){
+      r.cfo[i]=r.pat[i]+r.dep[i]-(r.inv[i]-r.inv[i-1])-(r.rec[i]-r.rec[i-1])-(r.oca[i]-r.oca[i-1])+(r.cred[i]-r.cred[i-1])+(r.ocl[i]-r.ocl[i-1]);
+      r.cfi[i]=-r.capex[i];r.cff[i]=r.eq[i]+r.tlDraw[i]-r.tlRep[i]-r.exRep[i]+(r.cc[i]-r.cc[i-1]);r.dcash[i]=r.cfo[i]+r.cfi[i]+r.cff[i];
+    }
+  }
+  const ds=r.dscr.filter(v=>v!=null);
+  r.avg=ds.length?ds.reduce((s,v)=>s+v,0)/ds.length:null;r.min=ds.length?Math.min(...ds):null;
+  r.minYr=ds.length?r.dscr.indexOf(r.min):null;
+  r.yrs=[];for(let i=0;i<=Y;i++)r.yrs.push("FY"+String((a.base+i)%100).padStart(2,"0"));
+  r.a=a;r.repInHorizon=r.tlRep.reduce((s,v)=>s+v,0);r.tlLeft=r.tlClose[Y];
+  // hints from last year
+  const H={rmPct:a.rm/a.sales,omPct:a.om/a.sales,empPct:a.emp/a.sales,admPct:a.adm/a.sales};
+  Object.keys(H).forEach(k=>{if(hints[k])hints[k].textContent=a.sales>0?"Last year: "+(H[k]*100).toFixed(1)+"%":""});
+  if(hints.recDays)hints.recDays.textContent=a.sales>0?"Last year: "+Math.round(a.rec0/a.sales*365)+" days":"";
+  if(hints.invDays)hints.invDays.textContent=(a.rm+a.om)>0?"Last year: "+Math.round(a.inv0/(a.rm+a.om)*365)+" days":"";
+  if(hints.credDays)hints.credDays.textContent=a.rm>0?"Last year: "+Math.round(a.cred0/a.rm*365)+" days":"";
+  return r;
+}
+
+function render(){
+  R=calc();const a=R.a;
+  document.getElementById("r-title").textContent="Loan appraisal summary: "+(t("name")||"Business");
+  const promoter=Math.max(0,a.proj-a.tl),pm=a.proj>0?promoter/a.proj:0;
+  const stats=[["Project cost",lk(a.proj)],["Term loan",lk(a.tl)],["Promoter margin",P(pm)],["Average DSCR",X(R.avg),true],
+               ["Minimum DSCR",X(R.min)+(R.minYr?" ("+R.yrs[R.minYr]+")":"")],["Year 1 CC limit (MPBF)",lk(R.cc[1])],["Revenue "+R.yrs[Y],lk(R.sales[Y])],["PAT "+R.yrs[Y],lk(R.pat[Y])]];
+  const hl=document.getElementById("headline");hl.innerHTML="";
+  stats.forEach(([k,v,key])=>{const d=document.createElement("div");d.className="stat"+(key?" key":"");const s=document.createElement("span");s.textContent=k;const b=document.createElement("b");b.textContent=v;d.append(s,b);hl.appendChild(d)});
+  let cls,label,msg;
+  if(R.avg==null){cls="warn";label="No repayment in view";msg="Enter a term loan and repayment period to assess debt service."}
+  else if(R.avg>=1.5&&R.min>=1.2){cls="good";label="Bankable";msg="Average DSCR of "+X(R.avg)+" and minimum of "+X(R.min)+" are within the range most banks look for (average 1.50x or more, no year below about 1.20x)."}
+  else if(R.avg>=1.25&&R.min>=1.0){cls="warn";label="Borderline";msg="DSCR is below typical comfort levels. Consider a longer repayment period, a moratorium, a smaller loan or a higher promoter contribution."}
+  else{cls="bad";label="Weak";msg="Cash flow does not cover repayments comfortably. Banks are unlikely to sanction on these numbers without restructuring the proposal."}
+  const v=document.getElementById("verdict");v.innerHTML="";const c=document.createElement("span");c.className="chip "+cls;c.textContent=label;const p=document.createElement("p");p.textContent=msg;v.append(c,p);
+  const al=[];
+  const diff0=R.tliab[0]-R.tassets[0];
+  if(Math.abs(diff0)>0.5)al.push(["warn","Last year's balance sheet does not balance: "+(diff0>0?"liabilities exceed assets":"assets exceed liabilities")+" by "+L(Math.abs(diff0))+" lakh. Check the figures entered, or add any missing items such as existing term loans."]);
+  const negYr=R.cash.findIndex((x,i)=>i>0&&x<0);
+  if(negYr>0)al.push(["bad","Cash turns negative in "+R.yrs[negYr]+" ("+L(R.cash[negYr])+" lakh). The plan needs more funding, a larger working capital limit or slower growth."]);
+  if(pm<0.2&&a.proj>0)al.push(["warn","Promoter margin is "+P(pm)+". Many banks expect at least 20–25% of project cost from the promoter."]);
+  if(R.cc[1]<a.ccReq-0.5)al.push(["warn","Requested cash credit of "+lk(a.ccReq)+" is above MPBF in some years, so the model caps it at MPBF (Year 1: "+lk(R.cc[1])+")."]);
+  if(R.tlLeft>0.5)al.push(["warn","The term loan extends beyond "+R.yrs[Y]+"; "+lk(R.tlLeft)+" remains outstanding at the end of the projection."]);
+  const ab=document.getElementById("alerts");ab.innerHTML="";al.forEach(([k,m])=>{const d=document.createElement("div");d.className="alert "+k;d.textContent=m;ab.appendChild(d)});
+  const em1=R.sales[1]>0?R.ebitda[1]/R.sales[1]:0,emY=R.sales[Y]>0?R.ebitda[Y]/R.sales[Y]:0;
+  const cagr=R.sales[0]>0?Math.pow(R.sales[Y]/R.sales[0],1/Y)-1:0;
+  const narr=(t("name")||"The company")+", engaged in "+(t("industry")||"its business")+", reported revenue of "+lk(R.sales[0])+" and profit after tax of "+lk(R.pat[0])+" in "+R.yrs[0]+". "+
+    "It proposes a project costing "+lk(a.proj)+" for "+(t("purpose")||"expansion")+", to be funded by a term loan of "+lk(a.tl)+" and promoter contribution of "+lk(promoter)+" ("+P(pm)+" margin). "+
+    "Revenue is projected to grow from "+lk(R.sales[0])+" to "+lk(R.sales[Y])+" by "+R.yrs[Y]+", a compound growth rate of "+P(cagr)+", with EBITDA margin of "+P(em1)+" in "+R.yrs[1]+" and "+P(emY)+" in "+R.yrs[Y]+". "+
+    (R.avg!=null?"The term loan is repayable over "+Math.round(a.tenor)+" years"+(a.mor>0?" after a moratorium of "+Math.round(a.mor)+" year"+(a.mor>1?"s":""):"")+", with average DSCR of "+X(R.avg)+" over the repayment period and a minimum of "+X(R.min)+" in "+R.yrs[R.minYr]+". ":"")+
+    "Working capital assessed under MPBF Method II supports a cash credit limit of "+lk(R.cc[1])+" in "+R.yrs[1]+", rising to "+lk(R.cc[Y])+" by "+R.yrs[Y]+". "+
+    "Current ratio stays between "+X(Math.min(...R.cr.slice(1).filter(x=>x!=null)))+" and "+X(Math.max(...R.cr.slice(1).filter(x=>x!=null)))+", and TOL/TNW at "+X(R.tol[Y])+" in "+R.yrs[Y]+".";
+  document.getElementById("narr").textContent=narr;
+  drawTable();
+}
+
+const TABS=[["pl","P&L"],["bs","Balance sheet"],["cf","Cash flow"],["loan","Term loan"],["ratios","Ratios and MPBF"]];
+const tb=document.getElementById("tabs");
+TABS.forEach(([id,lbl])=>{const b=document.createElement("button");b.type="button";b.role="tab";b.textContent=lbl;b.setAttribute("aria-selected",id===tab);
+  b.addEventListener("click",()=>{tab=id;[...tb.children].forEach(x=>x.setAttribute("aria-selected",x===b));drawTable()});tb.appendChild(b)});
+
+function drawTable(){
+  const r=R,Lr=(l,arr,f,c)=>({l,arr,f:f||L,c});
+  const defs={
+    pl:[Lr("Revenue from operations",r.sales),Lr("Raw material consumed",r.rm),Lr("Other manufacturing expenses",r.om),Lr("Cost of production",r.cop,L,"tot"),
+        Lr("Employee costs",r.emp),Lr("Admin and selling expenses",r.adm),Lr("EBITDA",r.ebitda,L,"tot"),Lr("EBITDA margin",r.ebitda.map((v,i)=>r.sales[i]?v/r.sales[i]:null),P),
+        Lr("Depreciation",r.dep),Lr("Interest on term loans",r.tlInt.map((v,i)=>v+r.exInt[i])),Lr("Interest on cash credit",r.ccInt),Lr("Profit before tax",r.pbt,L,"tot"),Lr("Tax",r.tax),Lr("Profit after tax",r.pat,L,"tot")],
+    bs:[{sec:"Liabilities"},Lr("Share capital",r.sc),Lr("Reserves and surplus",r.res),Lr("Net worth",r.nw,L,"tot"),Lr("Term loans, long-term portion",r.tlLT),Lr("Current maturities of term loans",r.curMat),
+        Lr("Cash credit",r.cc),Lr("Trade creditors",r.cred),Lr("Other current liabilities",r.ocl),Lr("Total liabilities",r.tliab,L,"tot"),
+        {sec:"Assets"},Lr("Net fixed assets",r.nfa),Lr("Inventory",r.inv),Lr("Trade receivables",r.rec),Lr("Other current assets",r.oca),Lr("Cash and bank",r.cash),Lr("Total assets",r.tassets,L,"tot")],
+    cf:[Lr("Profit after tax",r.pat.map((v,i)=>i?v:null)),Lr("Depreciation",r.dep.map((v,i)=>i?v:null)),Lr("Change in working capital",r.cfo.map((v,i)=>i?v-r.pat[i]-r.dep[i]:null)),
+        Lr("Cash from operations",r.cfo.map((v,i)=>i?v:null),L,"tot"),Lr("Capital expenditure",r.cfi.map((v,i)=>i?v:null)),Lr("Promoter equity",r.eq.map((v,i)=>i?v:null)),
+        Lr("Term loan drawn",r.tlDraw.map((v,i)=>i?v:null)),Lr("New term loan repaid",r.tlRep.map((v,i)=>i?-v:null)),Lr("Existing term loans repaid",r.exRep.map((v,i)=>i?-v:null)),Lr("Change in cash credit",r.cc.map((v,i)=>i?v-r.cc[i-1]:null)),
+        Lr("Net change in cash",r.dcash.map((v,i)=>i?v:null),L,"tot"),Lr("Closing cash",r.cash)],
+    loan:[{sec:"Proposed term loan"},Lr("Opening balance",r.tlOpen),Lr("Drawdown",r.tlDraw),Lr("Principal repayment",r.tlRep),Lr("Closing balance",r.tlClose,L,"tot"),Lr("Interest",r.tlInt),
+        {sec:"Existing term loans"},Lr("Opening balance",r.exClose.map((v,i)=>i?r.exClose[i-1]:null)),Lr("Principal repayment",r.exRep),Lr("Closing balance",r.exClose,L,"tot"),Lr("Interest",r.exInt),
+        {sec:"All term loans"},Lr("Due next year (current maturities)",r.curMat)],
+    ratios:[{sec:"Debt service"},Lr("Cash accruals (PAT + depreciation + TL interest)",r.pat.map((v,i)=>r.dscr[i]!=null?v+r.dep[i]+r.tlInt[i]+r.exInt[i]:null)),Lr("Debt service (principal + TL interest)",r.tlRep.map((v,i)=>r.dscr[i]!=null?v+r.exRep[i]+r.tlInt[i]+r.exInt[i]:null)),
+        Lr("DSCR",r.dscr,X,"tot"),{sec:"Key ratios"},Lr("Current ratio",r.cr,X),Lr("TOL / TNW",r.tol,X),Lr("Interest coverage (EBITDA / interest)",r.ebitda.map((v,i)=>r.int[i]>0?v/r.int[i]:null),X),Lr("Return on net worth",r.pat.map((v,i)=>r.nw[i]>0?v/r.nw[i]:null),P),
+        {sec:"MPBF Method II"},Lr("Current assets excl. cash",r.opca),Lr("Current liabilities excl. bank borrowings",r.cred.map((v,i)=>v+r.ocl[i]+r.curMat[i])),Lr("Minimum margin ("+r.a.margin+"%)",r.opca.map(v=>v*r.a.margin/100)),
+        Lr("MPBF",r.mpbf,L,"tot"),Lr("Cash credit limit in plan",r.cc)]
+  };
+  const tw=document.getElementById("table");
+  let h='<table><thead><tr><th>₹ lakh</th>'+r.yrs.map((y,i)=>'<th>'+y+'<small>'+(i?"Projected":"Actual")+'</small></th>').join("")+'</tr></thead><tbody>';
+  defs[tab].forEach(row=>{
+    if(row.sec){h+='<tr class="sec"><td colspan="'+(Y+2)+'">'+row.sec+'</td></tr>';return}
+    h+='<tr'+(row.c?' class="'+row.c+'"':'')+'><td>'+row.l+'</td>'+row.arr.map(v=>{
+      let k="";if(row.f===X&&v!=null&&row.l==="DSCR")k=v>=1.5?' class="ok"':(v<1.2?' class="neg"':"");else if(row.f===L&&v!=null&&v<-0.05)k=' class="neg"';
+      return '<td'+k+'>'+row.f(v)+'</td>'}).join("")+'</tr>';
+  });
+  tw.innerHTML=h+'</tbody></table>';
+}
+
+document.getElementById("form").addEventListener("input",render);
+document.getElementById("form").addEventListener("submit",e=>e.preventDefault());
+document.getElementById("copy").addEventListener("click",async e=>{
+  const b=e.currentTarget,txt=document.getElementById("narr").textContent;
+  try{await navigator.clipboard.writeText(txt);b.textContent="Copied"}catch(err){const s=window.getSelection(),rg=document.createRange();rg.selectNodeContents(document.getElementById("narr"));s.removeAllRanges();s.addRange(rg);b.textContent="Selected, press Ctrl+C"}
+  setTimeout(()=>b.textContent="Copy summary",2000);
+});
+
+/* ---------- Import: Excel, CSV, PDF or pasted text ---------- */
+const FIELDS=[
+ ["sales","Revenue",[["revenue from operations"],["net sales"],["income from operations"],["sales"],["turnover"],["total revenue"]],["other income","cost","return"]],
+ ["rm","Raw material consumed",[["cost of materials consumed"],["raw material consumed"],["raw materials consumed"],["material consumed"],["materials consumed"],["purchases of stock"],["purchases"]],["change"]],
+ ["om","Other manufacturing expenses",[["manufacturing expenses"],["direct expenses"],["power and fuel"],["power & fuel"]],[]],
+ ["emp","Employee costs",[["employee benefit"],["employee cost"],["salaries and wages"],["salaries & wages"],["staff cost"],["salary"]],[]],
+ ["adm","Admin and selling expenses",[["administrative"],["selling and distribution"],["other expenses"],["indirect expenses"]],["manufacturing"]],
+ ["dep0","Depreciation",[["depreciation and amorti"],["depreciation"]],["accumulated","less"]],
+ ["int0","Interest",[["finance cost"],["interest expense"],["interest"]],["income","received","accrued"]],
+ ["tax0","Tax",[["total tax expense"],["tax expense"],["current tax"],["provision for tax"],["income tax"]],["before tax","after tax","deferred tax liab","deferred tax asset"]],
+ ["sc","Share capital",[["equity share capital"],["share capital"],["capital account"],["partners capital"],["proprietor"]],["reserve"]],
+ ["res","Reserves and surplus",[["reserves and surplus"],["reserves & surplus"],["other equity"],["reserves"]],[]],
+ ["ex0","Existing term loans",[["long-term borrowings"],["long term borrowings"],["term loans"],["term loan"],["secured loans"]],["short","current maturit"]],
+ ["cc0","Cash credit",[["cash credit"],["short-term borrowings"],["short term borrowings"],["bank overdraft"],["working capital loan"]],["long"]],
+ ["cred0","Trade creditors",[["trade payables"],["sundry creditors"],["creditors"]],[]],
+ ["ocl0","Other current liabilities",[["other current liabilities"],["current liabilities and provisions"],["short-term provisions"],["short term provisions"]],["total"]],
+ ["nfa0","Net fixed assets",[["property, plant and equipment"],["property plant and equipment"],["net block"],["fixed assets"],["tangible assets"]],["capital work","intangible"]],
+ ["inv0","Inventory",[["inventories"],["inventory"],["closing stock"],["stock in trade"]],["change","increase","decrease","opening"]],
+ ["rec0","Trade receivables",[["trade receivables"],["sundry debtors"],["debtors"],["receivables"]],[]],
+ ["oca0","Other current assets",[["other current assets"],["short-term loans and advances"],["short term loans and advances"],["loans and advances"]],["long"]],
+ ["cash0","Cash and bank",[["cash and cash equivalents"],["cash and bank"],["cash & bank"],["bank balance"],["cash in hand"]],["flow"]]
+];
+const NUM=/\(?-?(?:\d{1,3}(?:,\d{2,3})+|\d+)(?:\.\d+)?\)?/g;
+function toNum(s){if(typeof s==="number")return s;s=String(s).trim();if(!s)return null;const neg=/^\(.*\)$/.test(s)||/^-/.test(s);
+  const c=s.replace(/[(),₹\s-]|rs\.?/gi,"");if(!/^\d+(\.\d+)?$/.test(c))return null;const v=parseFloat(c);return neg?-v:v}
+function cleanNums(nums,raw){ // drop a leading note number such as "19" before the real amounts
+  if(nums.length>=2&&Number.isInteger(nums[0])&&nums[0]>0&&nums[0]<=60&&!/,/.test(raw[0]||""))return nums.slice(1);return nums}
+function lineFromText(str){
+  const ms=[...str.matchAll(NUM)];if(!ms.length)return null;
+  const label=str.slice(0,ms[0].index).replace(/[:|\-–]+$/,"").trim();if(!label||!/[a-z]/i.test(label))return null;
+  const raw=ms.map(m=>m[0]),nums=raw.map(toNum).filter(v=>v!=null);
+  return {label,nums:cleanNums(nums,raw)};
+}
+function lineFromRow(row){
+  let label="",nums=[],raw=[];
+  row.forEach(c=>{if(c==null||c==="")return;const v=toNum(c);
+    if(v==null){if(!nums.length)label+=(label?" ":"")+String(c).trim()}else if(label){nums.push(v);raw.push(String(c))}});
+  return label&&nums.length?{label,nums:cleanNums(nums,raw)}:null;
+}
+function guessUnit(text,lines){
+  const t=text.toLowerCase();
+  if(/(in|₹|rs\.?|inr)\s*(lakhs?|lacs?)/.test(t)||/\blakhs?\b/.test(t))return "lakh";
+  if(/(in|₹|rs\.?|inr)\s*crores?/.test(t)||/\bcrores?\b/.test(t))return "crore";
+  if(/(in|₹|rs\.?|inr)\s*(thousands?|'000)/.test(t)||/\bthousands\b/.test(t))return "thousand";
+  if(/(in|₹|rs\.?|inr)\s*millions?/.test(t))return "million";
+  const s=lines.find(l=>/revenue|sales|turnover/i.test(l.label));
+  return s&&Math.abs(s.nums[0])>=100000?"rupees":"lakh";
+}
+const FACT={rupees:1e-5,thousand:0.01,lakh:1,million:10,crore:100};
+let lastImport=null;
+function match(lines){
+  const found={},used=new Set();
+  FIELDS.forEach(([id,,syns,ex])=>{
+    for(const [s] of syns){
+      const i=lines.findIndex((l,k)=>!used.has(k)&&l.label.toLowerCase().includes(s)&&!ex.some(e=>l.label.toLowerCase().includes(e))&&l.nums.length);
+      if(i>=0){found[id]={v:Math.abs(lines[i].nums[0]),label:lines[i].label};used.add(i);break}
+    }
+  });
+  return found;
+}
+function status(kind,html){const s=document.getElementById("impstatus");s.hidden=false;s.className="imp-status "+kind;s.innerHTML=html}
+function apply(){
+  if(!lastImport)return;
+  const sel=document.getElementById("unit").value,unit=sel==="auto"?lastImport.unit:sel,f=FACT[unit];
+  document.querySelectorAll(".f input.from-file").forEach(x=>x.classList.remove("from-file"));
+  const ids=Object.keys(lastImport.found);
+  ids.forEach(id=>{const x=document.getElementById(id);x.value=(Math.round(lastImport.found[id].v*f*10)/10).toString();x.classList.add("from-file")});
+  const g=k=>parseFloat(document.getElementById(k).value)||0,set=(k,v)=>{if(isFinite(v)&&v>0){const x=document.getElementById(k);x.value=v;x.classList.add("from-file")}};
+  const s=g("sales");
+  if(s>0){
+    if(ids.includes("rm"))set("rmPct",+(g("rm")/s*100).toFixed(1));
+    if(ids.includes("om"))set("omPct",+(g("om")/s*100).toFixed(1));
+    if(ids.includes("emp"))set("empPct",+(g("emp")/s*100).toFixed(1));
+    if(ids.includes("adm"))set("admPct",+(g("adm")/s*100).toFixed(1));
+    if(ids.includes("rec0"))set("recDays",Math.round(g("rec0")/s*365));
+    if(ids.includes("inv0")&&(g("rm")+g("om"))>0)set("invDays",Math.round(g("inv0")/(g("rm")+g("om"))*365));
+    if(ids.includes("cred0")&&g("rm")>0)set("credDays",Math.round(g("cred0")/g("rm")*365));
+  }
+  const miss=FIELDS.filter(([id])=>!ids.includes(id)).map(x=>x[1]);
+  const kind=ids.length>=12?"ok":(ids.length>=6?"warn":"bad");
+  let h="<b>Found "+ids.length+" of "+FIELDS.length+" line items</b> (figures read as "+unit+", converted to ₹ lakh). Filled boxes are highlighted; check them before using the report.";
+  if(miss.length)h+="<span>Not found, please enter by hand: "+miss.join(", ")+".</span>";
+  status(kind,h);
+  document.querySelectorAll("details").forEach((d,i)=>{if(i===1||i===2)d.open=true});
+  render();
+}
+function ingest(lines,text){
+  lines=lines.filter(Boolean);
+  if(!lines.length){status("bad","No line items with amounts were found. Try pasting the rows directly, or check that the file isn't a scanned image.");return}
+  lastImport={found:match(lines),unit:guessUnit(text,lines)};
+  if(!Object.keys(lastImport.found).length){status("bad","We read "+lines.length+" rows but couldn't recognise any standard line items such as revenue or trade receivables. Please enter the figures by hand.");return}
+  apply();
+}
+function loadScript(src){return new Promise((ok,no)=>{if(document.querySelector('script[src="'+src+'"]'))return ok();const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=()=>no(new Error("load"));document.head.appendChild(s)})}
+async function readFile(file){
+  status("warn","Reading "+file.name+"…");
+  const name=file.name.toLowerCase();
+  try{
+    if(name.endsWith(".pdf")){
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js");
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js");
+      const pdf=await window.pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
+      let lines=[],text="";
+      for(let p=1;p<=Math.min(pdf.numPages,20);p++){
+        const tc=await (await pdf.getPage(p)).getTextContent(),rows={};
+        tc.items.forEach(it=>{const y=Math.round(it.transform[5]/3);(rows[y]=rows[y]||[]).push(it)});
+        Object.keys(rows).sort((a,b)=>b-a).forEach(y=>{const str=rows[y].sort((a,b)=>a.transform[4]-b.transform[4]).map(i=>i.str).join(" ").replace(/\s+/g," ");text+=str+"\n";lines.push(lineFromText(str))});
+      }
+      if(!text.trim()){status("bad","This PDF has no readable text, it may be a scanned image. Upload the Excel version or paste the figures instead.");return}
+      ingest(lines,text);
+    }else if(name.endsWith(".xlsx")||name.endsWith(".xls")){
+      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
+      const wb=window.XLSX.read(await file.arrayBuffer(),{type:"array"});let lines=[],text="";
+      wb.SheetNames.forEach(sn=>{const rows=window.XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,raw:true,defval:""});rows.forEach(r=>{text+=r.join(" ")+"\n";lines.push(lineFromRow(r))})});
+      ingest(lines,text);
+    }else{
+      const text=await file.text();
+      ingest(text.split(/\r?\n/).map(l=>l.includes("\t")||/,"|",\s*\d/.test(l)?lineFromRow(l.split(/\t|,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(c=>c.replace(/^"|"$/g,""))):lineFromText(l)),text);
+    }
+  }catch(e){status("bad","We couldn't read this file. Try saving it as Excel or CSV, or paste the figures instead.")}
+}
+document.getElementById("file").addEventListener("change",e=>{const f=e.target.files[0];if(f)readFile(f);e.target.value=""});
+const drop=document.getElementById("drop");
+["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("drag")}));
+["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("drag")}));
+drop.addEventListener("drop",e=>{const f=e.dataTransfer.files[0];if(f)readFile(f)});
+document.getElementById("pastebtn").addEventListener("click",()=>{
+  const text=document.getElementById("paste").value;
+  if(!text.trim()){status("warn","Paste some rows first, for example from your Tally balance sheet or an Excel file.");return}
+  ingest(text.split(/\r?\n/).map(l=>l.includes("\t")?lineFromRow(l.split("\t")):lineFromText(l)),text);
+});
+document.getElementById("unit").addEventListener("change",apply);
+document.getElementById("form").addEventListener("input",e=>{if(e.target.classList)e.target.classList.remove("from-file")});
+render();
+})();
+</script>
+
+</body>
+</html>
